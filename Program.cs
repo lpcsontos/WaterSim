@@ -1,5 +1,4 @@
-﻿//using System.Threading;
-
+﻿using System.Threading;
 using System.Linq.Expressions;
 
 namespace watersim_2
@@ -8,18 +7,16 @@ namespace watersim_2
     {
         public static int SIZE;
 
-        public static int[] range = {30, 240}; //first is min and second is max of SIZE
+        public static int[] range = {30, 160}; //first is min and second is max of SIZE
         public static int[] size_range = {60, 75, 95, 120, 160};// set font size by comparing this array's elemnts to SIZE
-        public static short[] font_size = {14, 12, 10, 8, 6 };
+        public static short[] font_size = {14, 12, 10, 8, 6 };//font size
 
-        //public static int[,] world_array = new int[SIZE,SIZE]; if you want to use threaded mode
-        //also set SIZE to a value and allow TwSim and unallow start_sc() and be aware that
-        // 14px->67 max  12px->79 max  10px->96max  8px->122max  6px->164max  is the ration to chose the SIZE
-        //and you need to manually set the console's font size
+        //for custom sizes note that
+        // 14px->67max  12px->79max  10px->96max  8px->122max  6px->164max  4px->230max are the rations to chose the SIZE/font size
+        //you only need to add your size to size_range and font size and then change the max in range
         static void Main(string[] args)
         {
             start_sc();
-            //TwSim(world_array);
             Console.SetCursorPosition(0, SIZE);
 
             Console.ReadKey();
@@ -38,16 +35,48 @@ namespace watersim_2
                 try{
                     SIZE = int.Parse(Console.ReadLine());
                     if (range[1] >= SIZE && SIZE >= range[0]) { pass = true; }
-                    Console.Clear();
-                    Console.WriteLine("Your number is bigger or smaller than the accaptable range please chose again");
+                    else
+                    {
+                        Console.Clear();
+                        Console.WriteLine("Your number is bigger or smaller than the accaptable range please chose again");
+                    }
                 }
                 catch (Exception e){ Console.Clear(); Console.WriteLine("Not accaptable character please chose again"); }
             }
             int[,] world_array = new int[SIZE, SIZE];
+            pass = false;
+            bool Tmode = false;
+            while (!pass) {
+                Console.Write("Do you want threaded mode?(y/n): ");
+                try {
+                    string ans = Console.ReadLine();
+                    if (ans == "y" || ans == "Y") { Tmode = true; }
+                    else if (ans == "n" || ans == "N") { pass = true; }
+                    else
+                    {
+                        Console.Clear();
+                        Console.WriteLine("Wrong character!");
+                        Console.WriteLine($"Specify the size of the map by giving it a number between {range[0]} and {range[1]}");
+                        Console.WriteLine("It will create a square like map and a window fitting for it too");
+                        Console.WriteLine($"The size: {SIZE}");
+                    }
+                }
+                catch (Exception e) {
+                    Console.Clear();
+                    Console.WriteLine("Wrong character!");
+                    Console.WriteLine($"Specify the size of the map by giving it a number between {range[0]} and {range[1]}");
+                    Console.WriteLine("It will create a square like map and a window fitting for it too");
+                    Console.WriteLine($"The size: {SIZE}");
+                }
+            }
             Setup();
             wGen(world_array);
             fdraw(world_array);
-            wSim(world_array);
+            if (Tmode) {TwSim(world_array); }
+            else
+            {
+                wSim(world_array);
+            }
         }
 
         static void Setup() {
@@ -90,8 +119,8 @@ namespace watersim_2
         }
 
         /*******************************************************************************************************
-         * first draw methode, slow as redraws hole line not just one element
-        static void draw(int i) {
+         * i might need it
+        static void draw(int i, int[,] world) {
             Console.SetCursorPosition(0, i);
             for (int j = 0;j < world.GetLength(0); j++){
                 if (world[i, j] == 1 || world[i, j] == 3) { Console.BackgroundColor = ConsoleColor.Gray; }
@@ -101,7 +130,7 @@ namespace watersim_2
             }
             Console.BackgroundColor = ConsoleColor.Black;
         }
-        *********************************************************************************************************/
+        ********************************************************************************************************/
 
         //generates random world
         static void wGen(int[,] world) {
@@ -125,19 +154,14 @@ namespace watersim_2
                 for (int i = 1; i < world.GetLength(0); i++) {  //we do not need to check the first line
                     for (int j = 1; j < world.GetLength(1)-1; j++) {  // we do not need to check first and last element as they are DarkGrey always
                         //checks if data is 1 or 3 (gery) and can be 0(water), can water fall down by 1
-                        //if (i > 0 && world[i - 1, j] == 0 && (world[i, j] == 1 || world[i, j] == 3)) { world[i, j] = 0; draw(i); }
                         if ((world[i, j] == 1 || world[i, j] == 3) && i > 0 && world[i - 1, j] == 0) { world[i, j] = 0; Tdraw(i, j, world); }
 
 
                         //checks if data is 1 or 3(grey) and possible to go to left by 1
-                        //if ((world[i, j] == 1 || world[i, j] == 3) && world[i, j + 1] == 0 && world[i + 1, j] == 2 && world[i + 1, j + 1] == 2) { world[i, j] = 0; draw(i); }
-                        //if ((world[i, j] == 1 || world[i, j] == 3) && world[i, j + 1] == 0 && world[i + 1, j + 1] == 2) { world[i, j] = 0; draw(i); }
                         if ((world[i, j] == 1 || world[i, j] == 3) && world[i, j + 1] == 0 && world[i + 1, j] == 2 && world[i + 1, j + 1] == 2) { world[i, j] = 0; Tdraw(i, j, world); }
                         if ((world[i, j] == 1 || world[i, j] == 3) && world[i, j + 1] == 0 && world[i + 1, j + 1] == 2) { world[i, j] = 0; Tdraw(i, j, world); }
 
                         //checks if data is 1 or 3(grey) and possible to go right by 1
-                        //if (world[i, j] == 1 && world[i, j - 1] == 0 && world[i + 1, j] == 2 && world[i + 1, j - 1] == 2) { world[i, j] = 0; draw(i); }
-                        //if ((world[i, j] == 1 || world[i, j] == 3) && world[i, j - 1] == 0 && world[i + 1, j - 1] == 2) { world[i, j] = 0; draw(i); }
                         if (world[i, j] == 1 && world[i, j - 1] == 0 && world[i + 1, j] == 2 && world[i + 1, j - 1] == 2) { world[i, j] = 0; Tdraw(i, j, world); }
                         if ((world[i, j] == 1 || world[i, j] == 3) && world[i, j - 1] == 0 && world[i + 1, j - 1] == 2) { world[i, j] = 0; Tdraw(i, j, world); }
                     }
@@ -145,7 +169,7 @@ namespace watersim_2
             }
         }
 
-        //originally for threaded mode but runs faster than draw, as only draws the necessary element
+        //only draws the necessary element
         static void Tdraw(int i, int j, int[,] world) {
             Console.SetCursorPosition(2*j, i);  //might be confusing as it asks for x coord first and y after that
             if (world[i, j] == 1 || world[i, j] == 3) { Console.BackgroundColor = ConsoleColor.Gray; }
@@ -192,7 +216,7 @@ namespace watersim_2
 
         //threaded mode, not sure if it runs faster
         async static Task TwSim(int[,] world) {
-            int diff = 5; // adds a plusz to the size for better look
+            int diff = 6; // adds a plusz to the size for better look
             Console.SetWindowSize(2 * SIZE + diff, SIZE + diff);
             Console.Title = "Water Simulator";
             for (int i = 0; i < SIZE; i++)
